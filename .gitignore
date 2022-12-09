@@ -2,3 +2,4 @@
 *.hcl
 *.*.hcl
 *.info
+*.tfplan
