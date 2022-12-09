@@ -4,3 +4,5 @@
 *.info
 *.tfplan
 *.tfstate
+*.backup
+*.*.backup
