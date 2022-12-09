@@ -1,5 +1,5 @@
 resource   "azurerm_resource_group"   "rg"   { 
-  name   =   "iaac-opdo" 
+  name   =   "IAAC-AZURE-OPDO" 
   location   =   "Switzerland North" 
 }
 
