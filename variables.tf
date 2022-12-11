@@ -13,3 +13,11 @@ variable "azurerm_log_analytics_workspace" {
 variable "prefix" {
   default = "opdo"
 }
+
+variable "azurerm_subnet_name" {
+  default = "opdo-int-subnet"
+}
+
+variable "ip_configuration" {
+    default = "opdo-ip"
+}
