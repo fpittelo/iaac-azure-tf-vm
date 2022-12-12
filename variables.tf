@@ -41,3 +41,7 @@ variable "opdo_vm01_intip" {
 variable "opdo_vm01_pubip" {
   default = "opdo_vm01_pubip"
 }
+
+variable "opdo_vm01_name" {
+  default = "opdo-vm-01"
+}
