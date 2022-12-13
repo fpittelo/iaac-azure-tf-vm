@@ -1,47 +1,51 @@
 variable "rg_name" {
-  default = "iaac_azure_opdo"
+  default = "iaac-azure-opdo"
 }
 
 variable "rg_location" {
   default = "Switzerland North"
 }
 
-variable "log_analytics_wks" {
-  default = "opdo-logs"
+variable "opdo_log_wks" {
+  default = "opdo-logs-wks"
+}
+
+variable "security_group" {
+  default = "opdo-sec-group"
 }
 
 variable "prefix" {
   default = "opdo"
 }
 
-variable "opdo_virtual_net" {
-  default = "opdo_virtual_net"
+variable "opdo_vnet" {
+  default = "opdo-vnet"
 }
 
 variable "opdo_subnet_int" {
-  default = "opdo_subnet_int"
+  default = "opdo-subnet-int"
 }
 
 variable "opdo_subnet_pub" {
-  default = "opdo_subnet_pub"
+  default = "opdo-subnet-pub"
 }
 
-variable "opdo_vm01_ipcfg" {
-    default = "opdo_vm01_ipcfg"
+variable "opdo_vm_01_ipcfg" {
+    default = "opdo-vm-01-ipcfg"
 }
 
-variable "opdo_vm01_nic" {
-    default = "opdo_vm01_nic"
+variable "opdo_vm_01_nic" {
+    default = "opdo-vm-01-nic"
 }
 
-variable "opdo_vm01_intip" {
-  default = "opdo_vm01_intip"
+variable "opdo_vm_01_intip" {
+  default = "opdo-vm-01-intip"
 }
 
-variable "opdo_vm01_pubip" {
-  default = "opdo_vm01_pubip"
+variable "opdo_vm_01_pubip" {
+  default = "opdo-vm-01-pubip"
 }
 
-variable "opdo_vm01_name" {
+variable "opdo_vm_01_name" {
   default = "opdo-vm-01"
 }
