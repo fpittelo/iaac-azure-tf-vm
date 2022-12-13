@@ -9,8 +9,8 @@ resource "time_sleep" "wait_rg_creation" {
   create_duration = "90s"
 }
 
-resource "azurerm_log_analytics_workspace" "logwks" {
-  name                = var.log_analytics_wks
+resource "azurerm_log_analytics_workspace" "opdo_log_wks" {
+  name                = var.opdo_log_wks
   location            = var.rg_location
   resource_group_name = var.rg_name
   sku                 = "PerGB2018"
@@ -19,14 +19,26 @@ resource "azurerm_log_analytics_workspace" "logwks" {
 }
 
 resource "azurerm_network_security_group" "opdo" {
-  name                = var.log_analytics_wks
+  name                = var.security_group
   location            = var.rg_location
   resource_group_name = var.rg_name
   depends_on          = [azurerm_resource_group.rg]
+  
+  security_rule {
+    name                       = "SSH"
+    priority                   = 1001
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
 }
 
 resource "azurerm_virtual_network" "opdo_vnet" {
-  name                = var.opdo_virtual_net
+  name                = var.opdo_vnet
   address_space       = ["10.0.0.0/16"]
   location            = var.rg_location
   resource_group_name = var.rg_name
@@ -43,7 +55,7 @@ resource "time_sleep" "wait_vnet_creation" {
 resource "azurerm_subnet" "opdo_subnet_int" {
   name                 = var.opdo_subnet_int
   resource_group_name  = var.rg_name
-  virtual_network_name = var.opdo_virtual_net
+  virtual_network_name = var.opdo_vnet
   address_prefixes     = ["10.0.1.0/24"]
   depends_on           = [azurerm_virtual_network.opdo_vnet]
 }
@@ -52,63 +64,74 @@ resource "azurerm_subnet" "opdo_subnet_int" {
 resource "azurerm_subnet" "opdo_subnet_pub" {
   name                 = var.opdo_subnet_pub
   resource_group_name  = var.rg_name
-  virtual_network_name = var.opdo_virtual_net
+  virtual_network_name = var.opdo_vnet
   address_prefixes     = ["10.0.2.0/24"]
   depends_on           = [azurerm_virtual_network.opdo_vnet]
 }
 
 # Create private IP
-resource "azurerm_public_ip" "opdo_vm01_intip" {
-  name                = var.opdo_vm01_intip
+resource "azurerm_public_ip" "opdo_vm_01_intip" {
+  name                = var.opdo_vm_01_intip
   location            = var.rg_location
   resource_group_name = var.rg_name
   allocation_method   = "Dynamic"
+  depends_on          = [azurerm_resource_group.rg]
 }
 
 # Create public IP
-resource "azurerm_public_ip" "opdo_vm01_pubip" {
-  name                = var.opdo_vm01_pubip
+resource "azurerm_public_ip" "opdo_vm_01_pubip" {
+  name                = var.opdo_vm_01_pubip
   location            = var.rg_location
   resource_group_name = var.rg_name
   allocation_method   = "Dynamic"
+  depends_on          = [azurerm_resource_group.rg]
 }
 
-resource "azurerm_network_interface" "opdo_vm01_nic" {
-  name                = var.opdo_vm01_nic
+resource "azurerm_network_interface" "opdo_vm_01_nic" {
+  name                = var.opdo_vm_01_nic
   location            = var.rg_location
   resource_group_name = var.rg_name
+  depends_on          = [azurerm_resource_group.rg]
 
   ip_configuration {
-    name                          = var.opdo_vm01_ipcfg
+    name                          = var.opdo_vm_01_ipcfg
     subnet_id                     = azurerm_subnet.opdo_subnet_int.id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.opdo_vm_01_pubip.id
     }
 }
 
+# Connect the security group to the network interface
+resource "azurerm_network_interface_security_group_association" "opdo-sec-assoc" {
+  network_interface_id      = azurerm_network_interface.opdo_vm_01_nic.id
+  network_security_group_id = azurerm_network_security_group.opdo.id
+}
+
 resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
-  name                = var.opdo_vm01_name
-  resource_group_name = var.rg_name
-  location            = var.rg_location
-  size                = "Standard_F2"
-  admin_username      = "adminuser"
-  network_interface_ids = [
-    azurerm_network_interface.opdo_vm01_nic.id,
-  ]
-
-  admin_ssh_key {
-    username   = "adminuser"
-    public_key = file("~/.ssh/id_rsa.pub")
-  }
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
+  name                  = var.opdo_vm_01_name
+  resource_group_name   = var.rg_name
+  location              = var.rg_location
+  size                  = "Standard_F2"
+  admin_username        = "adminfpi"
+  admin_password        = "L1nuxP0wer"
+  disable_password_authentication = "false"
+  network_interface_ids = [azurerm_network_interface.opdo_vm_01_nic.id]
 
   source_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
-    sku       = "16.04-LTS"
+    sku       = "18.04-LTS"
     version   = "latest"
+  }
+
+  os_disk {
+    name                 = var.opdo_vm_01_name
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  tags = {
+    environment = "production"
+    owner       = "VPO-DSI-ISGOV-GOV"
   }
 }
