@@ -70,8 +70,9 @@ resource "azurerm_subnet" "opdo_subnet_pub" {
 }
 
 # Create private IP
-resource "azurerm_public_ip" "opdo_vm_01_intip" {
-  name                = var.opdo_vm_01_intip
+resource "azurerm_public_ip" "opdo_vm_intip" {
+  count               = var.vm_count
+  name                = "${var.vm_name_prefix}-${count.index}"
   location            = var.rg_location
   resource_group_name = var.rg_name
   allocation_method   = "Dynamic"
@@ -79,43 +80,46 @@ resource "azurerm_public_ip" "opdo_vm_01_intip" {
 }
 
 # Create public IP
-resource "azurerm_public_ip" "opdo_vm_01_pubip" {
-  name                = var.opdo_vm_01_pubip
+resource "azurerm_public_ip" "opdo_vm_pubip" {
+  count               = var.vm_count
+  name                = "${var.vm_name_prefix}-${count.index}"
   location            = var.rg_location
   resource_group_name = var.rg_name
   allocation_method   = "Dynamic"
   depends_on          = [azurerm_resource_group.rg]
 }
 
-resource "azurerm_network_interface" "opdo_vm_01_nic" {
-  name                = var.opdo_vm_01_nic
-  location            = var.rg_location
-  resource_group_name = var.rg_name
-  depends_on          = [azurerm_resource_group.rg]
-
+resource "azurerm_network_interface" "opdo_vm_nic" {
+  count                 = var.vm_count
+  name                  = "${var.vm_name_prefix}-${count.index}"
+  location              = var.rg_location
+  resource_group_name   = var.rg_name
+  depends_on            = [azurerm_resource_group.rg]
+ 
   ip_configuration {
-    name                          = var.opdo_vm_01_ipcfg
+    name                          = var.opdo_vm_ipcfg
     subnet_id                     = azurerm_subnet.opdo_subnet_int.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.opdo_vm_01_pubip.id
+#   public_ip_address_id          = [azurerm_public_ip.opdo_vm_pubip[count.index].id]
     }
 }
 
 # Connect the security group to the network interface
-resource "azurerm_network_interface_security_group_association" "opdo-sec-assoc" {
-  network_interface_id      = azurerm_network_interface.opdo_vm_01_nic.id
-  network_security_group_id = azurerm_network_security_group.opdo.id
-}
+#resource "azurerm_network_interface_security_group_association" "opdo-sec-assoc" {
+# network_interface_id      = azurerm_network_interface.opdo_vm_nic.id
+#  network_security_group_id = azurerm_network_security_group.opdo.id
+#}
 
-resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
-  name                  = var.opdo_vm_01_name
+resource "azurerm_linux_virtual_machine" "opdo-vm-xx" {
+  count                 = var.vm_count
+  name                  = "${var.vm_name_prefix}-${count.index}"
   resource_group_name   = var.rg_name
   location              = var.rg_location
   size                  = "Standard_F2"
   admin_username        = "adminfpi"
   admin_password        = "L1nuxP0wer"
   disable_password_authentication = "false"
-  network_interface_ids = [azurerm_network_interface.opdo_vm_01_nic.id]
+  network_interface_ids = [azurerm_network_interface.opdo_vm_nic[count.index].id,]
 
   source_image_reference {
     publisher = "Canonical"
@@ -125,7 +129,7 @@ resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
   }
 
   os_disk {
-    name                 = var.opdo_vm_01_name
+    name                 = "${var.vm_name_prefix}-${count.index}"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
