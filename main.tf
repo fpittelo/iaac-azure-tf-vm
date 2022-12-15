@@ -4,10 +4,10 @@ resource   "azurerm_resource_group"   "rg"   {
   location            =   var.rg_location 
 }
 
-resource "time_sleep" "wait_rg_creation" {
-  depends_on = [azurerm_resource_group.rg]
-  create_duration = "90s"
-}
+#resource "time_sleep" "wait_rg_creation" {
+#  depends_on = [azurerm_resource_group.rg]
+#  create_duration = "90s"
+#}
 
 resource "azurerm_log_analytics_workspace" "opdo_log_wks" {
   name                = var.opdo_log_wks
@@ -57,7 +57,7 @@ resource "azurerm_subnet" "opdo_subnet_int" {
   resource_group_name  = var.rg_name
   virtual_network_name = var.opdo_vnet
   address_prefixes     = ["10.0.1.0/24"]
-  depends_on           = [azurerm_virtual_network.opdo_vnet]
+  depends_on           = [azurerm_resource_group.rg, azurerm_virtual_network.opdo_vnet]
 }
 
 # Create subnet public
@@ -66,7 +66,7 @@ resource "azurerm_subnet" "opdo_subnet_pub" {
   resource_group_name  = var.rg_name
   virtual_network_name = var.opdo_vnet
   address_prefixes     = ["10.0.2.0/24"]
-  depends_on           = [azurerm_virtual_network.opdo_vnet]
+  depends_on           = [azurerm_resource_group.rg, azurerm_virtual_network.opdo_vnet]
 }
 
 # Create private IP
@@ -85,37 +85,59 @@ resource "azurerm_public_ip" "opdo_vm_01_pubip" {
   resource_group_name = var.rg_name
   allocation_method   = "Dynamic"
   depends_on          = [azurerm_resource_group.rg]
+
+  tags = {
+    environment = "Production"
+    owner       = "VPO-SI-ISGOV-GE"
+  }
+
 }
 
-resource "azurerm_network_interface" "opdo_vm_01_nic" {
-  name                = var.opdo_vm_01_nic
+# Create public IP
+resource "azurerm_public_ip" "opdo_fw_pubip" {
+  name                = var.opdo_fw_pubip
   location            = var.rg_location
   resource_group_name = var.rg_name
+  allocation_method   = "Static"
+  sku                 = "Standard"
   depends_on          = [azurerm_resource_group.rg]
 
+  tags = {
+    environment = "Production"
+    owner       = "VPO-SI-ISGOV-GE"
+  }
+
+}
+
+resource "azurerm_network_interface" "opdo_vm_nic" {
+  name                  = var.opdo_vm_nic
+  location              = var.rg_location
+  resource_group_name   = var.rg_name
+  depends_on            = [azurerm_resource_group.rg]
+ 
   ip_configuration {
-    name                          = var.opdo_vm_01_ipcfg
+    name                          = var.opdo_vm_ipcfg
     subnet_id                     = azurerm_subnet.opdo_subnet_int.id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.opdo_vm_01_pubip.id
     }
 }
 
-# Connect the security group to the network interface
-resource "azurerm_network_interface_security_group_association" "opdo-sec-assoc" {
-  network_interface_id      = azurerm_network_interface.opdo_vm_01_nic.id
-  network_security_group_id = azurerm_network_security_group.opdo.id
+#Connect the security group to the network interface
+ resource "azurerm_network_interface_security_group_association" "opdo-sec-assoc" {
+   network_interface_id      = azurerm_network_interface.opdo_vm_nic.id
+   network_security_group_id = azurerm_network_security_group.opdo.id
 }
 
 resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
-  name                  = var.opdo_vm_01_name
+  name                  = var.opdo_vm_01
   resource_group_name   = var.rg_name
   location              = var.rg_location
   size                  = "Standard_F2"
   admin_username        = "adminfpi"
   admin_password        = "L1nuxP0wer"
   disable_password_authentication = "false"
-  network_interface_ids = [azurerm_network_interface.opdo_vm_01_nic.id]
+  network_interface_ids = [azurerm_network_interface.opdo_vm_nic.id]
 
   source_image_reference {
     publisher = "Canonical"
@@ -125,7 +147,7 @@ resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
   }
 
   os_disk {
-    name                 = var.opdo_vm_01_name
+    name                 = var.opdo_vm_01
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
@@ -134,4 +156,24 @@ resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
     environment = "production"
     owner       = "VPO-DSI-ISGOV-GOV"
   }
+}
+
+resource "azurerm_firewall" "opdo_fw" {
+  name                = var.opdo_fw
+  location            = var.rg_location
+  resource_group_name = var.rg_name
+  sku_name            = "AZFW_VNet"
+  sku_tier            = "Standard"
+
+  ip_configuration {
+    name                 = var.opdo_fw_ipcfg
+    subnet_id            = azurerm_subnet.opdo_subnet_pub.id
+    public_ip_address_id = azurerm_public_ip.opdo_fw_pubip.id
+  }
+
+  tags = {
+    environment = "production"
+    owner       = "VPO-DSI-ISGOV-GE"
+  }
+
 }
