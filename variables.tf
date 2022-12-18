@@ -1,49 +1,49 @@
 variable "rg_name" {
-  default = "iaac-azure-opdo"
+  default = "iaac-azure-tf-vm"
 }
 
 variable "rg_location" {
   default = "Switzerland North"
 }
 
-variable "opdo_log_wks" {
-  default = "opdo-logs-wks"
+variable "log_wks" {
+  default = "vm-logs-wks"
 }
 
 variable "security_group" {
-  default = "opdo-sec-group"
+  default = "vm-sec-group"
 }
 
-variable "opdo_vnet" {
-  default = "opdo-vnet"
+variable "vm_vnet" {
+  default = "vm-vnet"
 }
 
-variable "opdo_subnet_int" {
-  default = "opdo-subnet-int"
+variable "vm_subnet_int" {
+  default = "vm-subnet-int"
 }
 
-variable "opdo_subnet_pub" {
+variable "vm_subnet_pub" {
   default = "AzureFirewallSubnet"
 }
 
-variable "opdo_vm_ipcfg" {
-  default = "opdo-vm-ipcfg"
+variable "vm_01_ipcfg" {
+  default = "vm-01-ipcfg"
 }
 
-variable "opdo_vm_nic" {
-  default = "opdo-vm-nic"
+variable "vm_01_nic" {
+  default = "vm-01-nic"
 }
 
-variable "opdo_vm_01_intip" {
-  default = "opdo-vm-01-intip"
+variable "vm_01_intip" {
+  default = "vm-01-intip"
 }
 
-variable "opdo_vm_01_pubip" {
-  default = "opdo-vm-01-pubip"
+variable "vm_01_pubip" {
+  default = "vm-01-pubip"
 }
 
-variable "opdo_vm_01" {
-  default = "opdo-vm-01"
+variable "vm_01" {
+  default = "vm-01"
 }
 
 variable "vm_count" {
@@ -54,25 +54,25 @@ variable "vm_count" {
 
 variable "vm_name_prefix" {
   description = "VM Names"
-  default     = "opdo-vm"
+  default     = "vm"
   type        = string
 }
 
-variable "opdo_fw" {
-  description = "OPDO Firewall"
-  default     = "opdo-fw"
+variable "vm_fw" {
+  description = "Vm Firewall"
+  default     = "vm-fw"
   type        = string
 }
 
-variable "opdo_fw_pubip" {
-  description = "OPDO Firewall Public IP"
-  default     = "opdo-fw-pubip"
+variable "fw_pubip" {
+  description = "Firewall Public IP"
+  default     = "fw-pubip"
   type        = string
 }
 
-variable "opdo_fw_ipcfg" {
-  description = "OPDO Firewall IP Config"
-  default     = "opdo-fw-ipcfg"
+variable "fw_ipcfg" {
+  description = "Firewall IP Config"
+  default     = "fw-ipcfg"
   type        = string
 }
 

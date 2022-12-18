@@ -9,8 +9,8 @@ resource "azurerm_resource_group" "rg" {
 #  create_duration = "90s"
 #}
 
-resource "azurerm_log_analytics_workspace" "opdo_log_wks" {
-  name                = var.opdo_log_wks
+resource "azurerm_log_analytics_workspace" "log_wks" {
+  name                = var.log_wks
   location            = var.rg_location
   resource_group_name = var.rg_name
   sku                 = "PerGB2018"
@@ -18,7 +18,7 @@ resource "azurerm_log_analytics_workspace" "opdo_log_wks" {
   depends_on          = [azurerm_resource_group.rg]
 }
 
-resource "azurerm_network_security_group" "opdo" {
+resource "azurerm_network_security_group" "vm_sec_grp" {
   name                = var.security_group
   location            = var.rg_location
   resource_group_name = var.rg_name
@@ -37,8 +37,8 @@ resource "azurerm_network_security_group" "opdo" {
   }
 }
 
-resource "azurerm_virtual_network" "opdo_vnet" {
-  name                = var.opdo_vnet
+resource "azurerm_virtual_network" "vm_net" {
+  name                = var.vm_vnet
   address_space       = ["10.0.0.0/16"]
   location            = var.rg_location
   resource_group_name = var.rg_name
@@ -47,31 +47,31 @@ resource "azurerm_virtual_network" "opdo_vnet" {
 }
 
 resource "time_sleep" "wait_vnet_creation" {
-  depends_on      = [azurerm_virtual_network.opdo_vnet]
+  depends_on      = [azurerm_virtual_network.vm_net]
   create_duration = "90s"
 }
 
 # Create subnet internal
-resource "azurerm_subnet" "opdo_subnet_int" {
-  name                 = var.opdo_subnet_int
+resource "azurerm_subnet" "vm_subnet_int" {
+  name                 = var.vm_subnet_int
   resource_group_name  = var.rg_name
-  virtual_network_name = var.opdo_vnet
+  virtual_network_name = var.vm_vnet
   address_prefixes     = ["10.0.1.0/24"]
-  depends_on           = [azurerm_resource_group.rg, azurerm_virtual_network.opdo_vnet]
+  depends_on           = [azurerm_resource_group.rg, azurerm_virtual_network.vm_net]
 }
 
 # Create subnet public
-resource "azurerm_subnet" "opdo_subnet_pub" {
-  name                 = var.opdo_subnet_pub
+resource "azurerm_subnet" "vm_subnet_pub" {
+  name                 = var.vm_subnet_pub
   resource_group_name  = var.rg_name
-  virtual_network_name = var.opdo_vnet
+  virtual_network_name = var.vm_vnet
   address_prefixes     = ["10.0.2.0/24"]
-  depends_on           = [azurerm_resource_group.rg, azurerm_virtual_network.opdo_vnet]
+  depends_on           = [azurerm_resource_group.rg, azurerm_virtual_network.vm_net]
 }
 
 # Create private IP
-resource "azurerm_public_ip" "opdo_vm_01_intip" {
-  name                = var.opdo_vm_01_intip
+resource "azurerm_public_ip" "vm_01_intip" {
+  name                = var.vm_01_intip
   location            = var.rg_location
   resource_group_name = var.rg_name
   allocation_method   = "Dynamic"
@@ -79,8 +79,8 @@ resource "azurerm_public_ip" "opdo_vm_01_intip" {
 }
 
 # Create public IP
-resource "azurerm_public_ip" "opdo_vm_01_pubip" {
-  name                = var.opdo_vm_01_pubip
+resource "azurerm_public_ip" "vm_01_pubip" {
+  name                = var.vm_01_pubip
   location            = var.rg_location
   resource_group_name = var.rg_name
   allocation_method   = "Dynamic"
@@ -94,8 +94,8 @@ resource "azurerm_public_ip" "opdo_vm_01_pubip" {
 }
 
 # Create fw public IP
-# resource "azurerm_public_ip" "opdo_fw_pubip" {
-#   name                = var.opdo_fw_pubip
+# resource "azurerm_public_ip" "vm_fw_pubip" {
+#   name                = var.vm_fw_pubip
 #   location            = var.rg_location
 #   resource_group_name = var.rg_name
 #   allocation_method   = "Static"
@@ -108,35 +108,35 @@ resource "azurerm_public_ip" "opdo_vm_01_pubip" {
 #   }
 # }
 
-resource "azurerm_network_interface" "opdo_vm_nic" {
-  name                = var.opdo_vm_nic
+resource "azurerm_network_interface" "vm_01_nic" {
+  name                = var.vm_01_nic
   location            = var.rg_location
   resource_group_name = var.rg_name
   depends_on          = [azurerm_resource_group.rg]
 
   ip_configuration {
-    name                          = var.opdo_vm_ipcfg
-    subnet_id                     = azurerm_subnet.opdo_subnet_int.id
+    name                          = var.vm_01_ipcfg
+    subnet_id                     = azurerm_subnet.vm_subnet_int.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.opdo_vm_01_pubip.id
+    public_ip_address_id          = azurerm_public_ip.vm_01_pubip.id
   }
 }
 
 #Connect the security group to the network interface
-resource "azurerm_network_interface_security_group_association" "opdo-sec-assoc" {
-  network_interface_id      = azurerm_network_interface.opdo_vm_nic.id
-  network_security_group_id = azurerm_network_security_group.opdo.id
+resource "azurerm_network_interface_security_group_association" "vm-sec-assoc" {
+  network_interface_id      = azurerm_network_interface.vm_01_nic.id
+  network_security_group_id = azurerm_network_security_group.vm_sec_grp.id
 }
 
-resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
-  name                            = var.opdo_vm_01
+resource "azurerm_linux_virtual_machine" "vm-01" {
+  name                            = var.vm_01
   resource_group_name             = var.rg_name
   location                        = var.rg_location
   size                            = "Standard_F2"
   admin_username                  = "adminfpi"
   admin_password                  = "L1nuxP0wer"
   disable_password_authentication = "false"
-  network_interface_ids           = [azurerm_network_interface.opdo_vm_nic.id]
+  network_interface_ids           = [azurerm_network_interface.vm_01_nic.id]
 
   admin_ssh_key {
     username   = "adminfpi"
@@ -153,7 +153,7 @@ resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
   }
 
   os_disk {
-    name                 = var.opdo_vm_01
+    name                 = var.vm_01
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
@@ -173,17 +173,17 @@ resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
   }
 }
 
-# resource "azurerm_firewall" "opdo_fw" {
-#   name                = var.opdo_fw
+# resource "azurerm_firewall" "vm_fw" {
+#   name                = var.vm_fw
 #   location            = var.rg_location
 #   resource_group_name = var.rg_name
 #   sku_name            = "AZFW_VNet"
 #   sku_tier            = "Standard"
 
 #   ip_configuration {
-#     name                 = var.opdo_fw_ipcfg
-#     subnet_id            = azurerm_subnet.opdo_subnet_pub.id
-#     public_ip_address_id = azurerm_public_ip.opdo_fw_pubip.id
+#     name                 = var.vm_fw_ipcfg
+#     subnet_id            = azurerm_subnet.vm_subnet_pub.id
+#     public_ip_address_id = azurerm_public_ip.vm_fw_pubip.id
 #   }
 
 #   tags = {
@@ -193,11 +193,11 @@ resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
 
 # }
 
-data "azurerm_public_ip" "opdo_vm_01_pubipdata" {
-  name = azurerm_public_ip.opdo_vm_01_pubip.name
+data "azurerm_public_ip" "vm_01_pubipdata" {
+  name = azurerm_public_ip.vm_01_pubip.name
   resource_group_name = var.rg_name
 }
 
-output "opdo_vm_01_pubip" {
-  value = "${azurerm_linux_virtual_machine.opdo-vm-01.name}: ${data.azurerm_public_ip.opdo_vm_01_pubipdata.ip_address}"
+output "vm_01_pubip" {
+  value = "${azurerm_linux_virtual_machine.vm-01.name}: ${data.azurerm_public_ip.vm_01_pubipdata.ip_address}"
 }
