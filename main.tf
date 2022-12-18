@@ -1,7 +1,7 @@
 
-resource   "azurerm_resource_group"   "rg"   { 
-  name                =   var.rg_name 
-  location            =   var.rg_location 
+resource "azurerm_resource_group" "rg" {
+  name     = var.rg_name
+  location = var.rg_location
 }
 
 #resource "time_sleep" "wait_rg_creation" {
@@ -23,7 +23,7 @@ resource "azurerm_network_security_group" "opdo" {
   location            = var.rg_location
   resource_group_name = var.rg_name
   depends_on          = [azurerm_resource_group.rg]
-  
+
   security_rule {
     name                       = "SSH"
     priority                   = 1001
@@ -47,7 +47,7 @@ resource "azurerm_virtual_network" "opdo_vnet" {
 }
 
 resource "time_sleep" "wait_vnet_creation" {
-  depends_on = [azurerm_virtual_network.opdo_vnet]
+  depends_on      = [azurerm_virtual_network.opdo_vnet]
   create_duration = "90s"
 }
 
@@ -93,51 +93,57 @@ resource "azurerm_public_ip" "opdo_vm_01_pubip" {
 
 }
 
-# Create public IP
-resource "azurerm_public_ip" "opdo_fw_pubip" {
-  name                = var.opdo_fw_pubip
-  location            = var.rg_location
-  resource_group_name = var.rg_name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-  depends_on          = [azurerm_resource_group.rg]
+# Create fw public IP
+# resource "azurerm_public_ip" "opdo_fw_pubip" {
+#   name                = var.opdo_fw_pubip
+#   location            = var.rg_location
+#   resource_group_name = var.rg_name
+#   allocation_method   = "Static"
+#   sku                 = "Standard"
+#   depends_on          = [azurerm_resource_group.rg]
 
-  tags = {
-    environment = "Production"
-    owner       = "VPO-SI-ISGOV-GE"
-  }
-
-}
+#   tags = {
+#     environment = "Production"
+#     owner       = "VPO-SI-ISGOV-GE"
+#   }
+# }
 
 resource "azurerm_network_interface" "opdo_vm_nic" {
-  name                  = var.opdo_vm_nic
-  location              = var.rg_location
-  resource_group_name   = var.rg_name
-  depends_on            = [azurerm_resource_group.rg]
- 
+  name                = var.opdo_vm_nic
+  location            = var.rg_location
+  resource_group_name = var.rg_name
+  depends_on          = [azurerm_resource_group.rg]
+
   ip_configuration {
     name                          = var.opdo_vm_ipcfg
     subnet_id                     = azurerm_subnet.opdo_subnet_int.id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.opdo_vm_01_pubip.id
-    }
+  }
 }
 
 #Connect the security group to the network interface
- resource "azurerm_network_interface_security_group_association" "opdo-sec-assoc" {
-   network_interface_id      = azurerm_network_interface.opdo_vm_nic.id
-   network_security_group_id = azurerm_network_security_group.opdo.id
+resource "azurerm_network_interface_security_group_association" "opdo-sec-assoc" {
+  network_interface_id      = azurerm_network_interface.opdo_vm_nic.id
+  network_security_group_id = azurerm_network_security_group.opdo.id
 }
 
 resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
-  name                  = var.opdo_vm_01
-  resource_group_name   = var.rg_name
-  location              = var.rg_location
-  size                  = "Standard_F2"
-  admin_username        = "adminfpi"
-  admin_password        = "L1nuxP0wer"
+  name                            = var.opdo_vm_01
+  resource_group_name             = var.rg_name
+  location                        = var.rg_location
+  size                            = "Standard_F2"
+  admin_username                  = "adminfpi"
+  admin_password                  = "L1nuxP0wer"
   disable_password_authentication = "false"
-  network_interface_ids = [azurerm_network_interface.opdo_vm_nic.id]
+  network_interface_ids           = [azurerm_network_interface.opdo_vm_nic.id]
+
+  admin_ssh_key {
+    username   = "adminfpi"
+    public_key = file("~/.ssh/fredkey.pub")
+  }
+
+  custom_data = filebase64("customdata.tpl")
 
   source_image_reference {
     publisher = "Canonical"
@@ -150,6 +156,15 @@ resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
     name                 = var.opdo_vm_01
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
+  }
+
+  provisioner "local-exec" {
+    command = templatefile("${var.host_os}-ssh-script.tpl", {
+      hostname     = self.public_ip_address,
+      user         = "adminfpi"
+      identityfile = "~/.ssh/fredkey"
+    })
+    interpreter = ["Powershell", "-Command"]
   }
 
   tags = {
@@ -177,3 +192,12 @@ resource "azurerm_linux_virtual_machine" "opdo-vm-01" {
 #   }
 
 # }
+
+data "azurerm_public_ip" "opdo_vm_01_pubipdata" {
+  name = azurerm_public_ip.opdo_vm_01_pubip.name
+  resource_group_name = var.rg_name
+}
+
+output "opdo_vm_01_pubip" {
+  value = "${azurerm_linux_virtual_machine.opdo-vm-01.name}: ${data.azurerm_public_ip.opdo_vm_01_pubipdata.ip_address}"
+}
