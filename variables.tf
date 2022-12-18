@@ -27,11 +27,11 @@ variable "opdo_subnet_pub" {
 }
 
 variable "opdo_vm_ipcfg" {
-    default = "opdo-vm-ipcfg"
+  default = "opdo-vm-ipcfg"
 }
 
 variable "opdo_vm_nic" {
-    default = "opdo-vm-nic"
+  default = "opdo-vm-nic"
 }
 
 variable "opdo_vm_01_intip" {
@@ -73,5 +73,10 @@ variable "opdo_fw_pubip" {
 variable "opdo_fw_ipcfg" {
   description = "OPDO Firewall IP Config"
   default     = "opdo-fw-ipcfg"
+  type        = string
+}
+
+variable "host_os" {
+  description = "Select host os"
   type        = string
 }
