@@ -18,8 +18,8 @@ resource "azurerm_log_analytics_workspace" "log_wks" {
   depends_on          = [azurerm_resource_group.rg]
 }
 
-resource "azurerm_network_security_group" "vm_sec_grp" {
-  name                = var.security_group
+resource "azurerm_network_security_group" "vm_nsg_01" {
+  name                = var.vm_nsg_01
   location            = var.rg_location
   resource_group_name = var.rg_name
   depends_on          = [azurerm_resource_group.rg]
@@ -125,7 +125,7 @@ resource "azurerm_network_interface" "vm_01_nic" {
 #Connect the security group to the network interface
 resource "azurerm_network_interface_security_group_association" "vm-sec-assoc" {
   network_interface_id      = azurerm_network_interface.vm_01_nic.id
-  network_security_group_id = azurerm_network_security_group.vm_sec_grp.id
+  network_security_group_id = azurerm_network_security_group.vm_nsg_01.id
 }
 
 resource "azurerm_linux_virtual_machine" "vm-01" {
