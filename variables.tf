@@ -10,8 +10,10 @@ variable "log_wks" {
   default = "vm-logs-wks"
 }
 
-variable "security_group" {
-  default = "vm-sec-group"
+variable "vm_nsg_01" {
+  default = "vm_nsg_01"
+  description = "Network Security Group"
+  type = string
 }
 
 variable "vm_vnet" {
