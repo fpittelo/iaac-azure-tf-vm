@@ -2,8 +2,12 @@
 # value = azurerm_resource_group.rg.name
 #}
 
-#output "public_ip_address" {
-# value = azurerm_linux_virtual_machine.my_terraform_vm.public_ip_address
+#output "vm_pubip_list" {
+# value = azurerm_linux_virtual_machine.vm_pubip.*.name
+#}
+
+#output "vm_pubip_list_id" {
+#   value = azurerm_linux_virtual_machine.List.name
 #}
 
 #output "tls_private_key" {
