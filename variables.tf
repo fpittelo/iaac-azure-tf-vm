@@ -10,8 +10,10 @@ variable "log_wks" {
   default = "vm-logs-wks"
 }
 
-variable "security_group" {
-  default = "vm-sec-group"
+variable "vm_nsg_01" {
+  default = "vm_nsg_01"
+  description = "Network Security Group"
+  type = string
 }
 
 variable "vm_vnet" {
@@ -19,11 +21,15 @@ variable "vm_vnet" {
 }
 
 variable "vm_subnet_int" {
-  default = "vm-subnet-int"
+  description  = "Vm internal subnet"
+  default      = "vm-subnet-int"
+  type         = string
 }
 
 variable "vm_subnet_pub" {
-  default = "AzureFirewallSubnet"
+  description  = "Vm public subnet"
+  default      = "vm-subnet-pub"
+  type         = string
 }
 
 variable "vm_01_ipcfg" {
@@ -49,13 +55,7 @@ variable "vm_01" {
 variable "vm_count" {
   description = "Number of Virtual Machines"
   default     = 2
-  type        = string
-}
-
-variable "vm_name_prefix" {
-  description = "VM Names"
-  default     = "vm"
-  type        = string
+  type        = number
 }
 
 variable "vm_fw" {
@@ -79,4 +79,47 @@ variable "fw_ipcfg" {
 variable "host_os" {
   description = "Select host os"
   type        = string
+}
+
+variable vm_intip_list {
+    type = list(string)
+    description = "List of all private IP's"
+}
+
+variable vm_pubip_list {
+    type = list(string)
+    description = "List of all public IP's"
+}
+
+variable "vm_name_prefix" {
+  description = "VM Names"
+  default     = "vm"
+  type        = string
+}
+
+variable "vm_ip_space" {
+  default = ["10.0.0.0/16"]
+}
+
+variable "vm_ip_prefix" {
+  description = "IP Subnet"
+  default     = "1.0.1.0/24"
+  type        = string
+}
+
+#variable for department
+variable "department" {
+type = string
+default = "IT"
+}
+
+#variable for test environment
+variable "vm_test_env" {
+type = string
+}
+
+#variable for owner
+variable "vm_owner" {
+type = string
+default = "Fred"
 }
