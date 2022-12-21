@@ -69,47 +69,26 @@ resource "azurerm_subnet" "vm_subnet_pub" {
   depends_on           = [azurerm_resource_group.rg, azurerm_virtual_network.vm_net]
 }
 
-# Create private IP
-resource "azurerm_public_ip" "vm_01_intip" {
-  name                = var.vm_01_intip
-  location            = var.rg_location
-  resource_group_name = var.rg_name
-  allocation_method   = "Dynamic"
-  depends_on          = [azurerm_resource_group.rg]
-}
-
 # Create public IP
-resource "azurerm_public_ip" "vm_01_pubip" {
-  name                = var.vm_01_pubip
+resource "azurerm_public_ip" "vm_pubip" {
+  count               = var.vm_count
+  name                = "${var.vm_name_prefix}-${count.index}"
   location            = var.rg_location
   resource_group_name = var.rg_name
-  allocation_method   = "Dynamic"
+  allocation_method   = var.vm_test_env=="test" ? "Static" : "Dynamic"
+  sku                 = "Basic"
   depends_on          = [azurerm_resource_group.rg]
 
   tags = {
-    environment = "Production"
-    owner       = "VPO-SI-ISGOV-GE"
+    department        = var.department
+    environment       = var.vm_test_env
+    owner             = var.vm_owner
   }
-
 }
 
-# Create fw public IP
-# resource "azurerm_public_ip" "vm_fw_pubip" {
-#   name                = var.vm_fw_pubip
-#   location            = var.rg_location
-#   resource_group_name = var.rg_name
-#   allocation_method   = "Static"
-#   sku                 = "Standard"
-#   depends_on          = [azurerm_resource_group.rg]
-
-#   tags = {
-#     environment = "Production"
-#     owner       = "VPO-SI-ISGOV-GE"
-#   }
-# }
-
 resource "azurerm_network_interface" "vm_01_nic" {
-  name                = var.vm_01_nic
+  count               = var.vm_count
+  name                = "${var.vm_name_prefix}-${count.index}"
   location            = var.rg_location
   resource_group_name = var.rg_name
   depends_on          = [azurerm_resource_group.rg]
@@ -118,25 +97,30 @@ resource "azurerm_network_interface" "vm_01_nic" {
     name                          = var.vm_01_ipcfg
     subnet_id                     = azurerm_subnet.vm_subnet_int.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.vm_01_pubip.id
+    public_ip_address_id = element(azurerm_public_ip.vm_pubip.*.id, count.index)
   }
 }
 
 #Connect the security group to the network interface
 resource "azurerm_network_interface_security_group_association" "vm-sec-assoc" {
-  network_interface_id      = azurerm_network_interface.vm_01_nic.id
+  count = var.vm_count
+  network_interface_id      = element(azurerm_network_interface.vm_01_nic.*.id, count.index)
   network_security_group_id = azurerm_network_security_group.vm_nsg_01.id
 }
 
 resource "azurerm_linux_virtual_machine" "vm-01" {
-  name                            = var.vm_01
+  count                           = var.vm_count
+  name                            = "${var.vm_name_prefix}-${format("%02d", count.index)}"
   resource_group_name             = var.rg_name
   location                        = var.rg_location
   size                            = "Standard_F2"
   admin_username                  = "adminfpi"
   admin_password                  = "L1nuxP0wer"
   disable_password_authentication = "false"
-  network_interface_ids           = [azurerm_network_interface.vm_01_nic.id]
+  network_interface_ids           = [
+    element(azurerm_network_interface.vm_01_nic.*.id, count.index)
+,
+  ]
 
   admin_ssh_key {
     username   = "adminfpi"
@@ -153,7 +137,7 @@ resource "azurerm_linux_virtual_machine" "vm-01" {
   }
 
   os_disk {
-    name                 = var.vm_01
+    name                 = "vm_disk-${count.index}"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
@@ -168,36 +152,17 @@ resource "azurerm_linux_virtual_machine" "vm-01" {
   }
 
   tags = {
-    environment = "production"
-    owner       = "VPO-DSI-ISGOV-GOV"
+    department        = var.department
+    environment       = var.vm_test_env
+    owner             = var.vm_owner
   }
 }
 
-# resource "azurerm_firewall" "vm_fw" {
-#   name                = var.vm_fw
-#   location            = var.rg_location
-#   resource_group_name = var.rg_name
-#   sku_name            = "AZFW_VNet"
-#   sku_tier            = "Standard"
+#data "azurerm_public_ip" "vm_01_pubipdata" {
+#  name = azurerm_public_ip.vm_pubip.name
+# resource_group_name = var.rg_name
+#}
 
-#   ip_configuration {
-#     name                 = var.vm_fw_ipcfg
-#     subnet_id            = azurerm_subnet.vm_subnet_pub.id
-#     public_ip_address_id = azurerm_public_ip.vm_fw_pubip.id
-#   }
-
-#   tags = {
-#     environment = "production"
-#     owner       = "VPO-DSI-ISGOV-GE"
-#   }
-
-# }
-
-data "azurerm_public_ip" "vm_01_pubipdata" {
-  name = azurerm_public_ip.vm_01_pubip.name
-  resource_group_name = var.rg_name
-}
-
-output "vm_01_pubip" {
-  value = "${azurerm_linux_virtual_machine.vm-01.name}: ${data.azurerm_public_ip.vm_01_pubipdata.ip_address}"
-}
+#output "vm_01_pubip" {
+# value = "${azurerm_linux_virtual_machine.vm-01.name}: ${data.azurerm_public_ip.vm_01_pubipdata.ip_address}"
+#}
