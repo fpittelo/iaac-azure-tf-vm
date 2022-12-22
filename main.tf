@@ -2,6 +2,13 @@
 resource "azurerm_resource_group" "rg" {
   name     = var.rg_name
   location = var.rg_location
+
+  tags = {
+    department        = var.department
+    environment       = var.vm_test_env
+    owner             = var.vm_owner
+  }
+
 }
 
 #resource "time_sleep" "wait_rg_creation" {
@@ -16,6 +23,13 @@ resource "azurerm_log_analytics_workspace" "log_wks" {
   sku                 = "PerGB2018"
   retention_in_days   = 30
   depends_on          = [azurerm_resource_group.rg]
+
+  tags = {
+    department        = var.department
+    environment       = var.vm_test_env
+    owner             = var.vm_owner
+  }
+
 }
 
 resource "azurerm_network_security_group" "vm_nsg_01" {
@@ -35,6 +49,13 @@ resource "azurerm_network_security_group" "vm_nsg_01" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+  tags = {
+    department        = var.department
+    environment       = var.vm_test_env
+    owner             = var.vm_owner
+  }
+
 }
 
 resource "azurerm_virtual_network" "vm_net" {
@@ -44,6 +65,13 @@ resource "azurerm_virtual_network" "vm_net" {
   resource_group_name = var.rg_name
   dns_servers         = ["8.8.8.8", "8.8.4.4"]
   depends_on          = [azurerm_resource_group.rg]
+
+  tags = {
+    department        = var.department
+    environment       = var.vm_test_env
+    owner             = var.vm_owner
+  }
+
 }
 
 resource "time_sleep" "wait_vnet_creation" {
@@ -99,6 +127,13 @@ resource "azurerm_network_interface" "vm_01_nic" {
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id = element(azurerm_public_ip.vm_pubip.*.id, count.index)
   }
+
+  tags = {
+    department        = var.department
+    environment       = var.vm_test_env
+    owner             = var.vm_owner
+  }
+
 }
 
 #Connect the security group to the network interface
