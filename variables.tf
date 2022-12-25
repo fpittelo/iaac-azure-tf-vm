@@ -10,8 +10,8 @@ variable "log_wks" {
   default = "vm-logs-wks"
 }
 
-variable "vm_nsg_01" {
-  default = "vm_nsg_01"
+variable "vm_nsg" {
+  default = "vm_nsg"
   description = "Network Security Group"
   type = string
 }
@@ -50,12 +50,14 @@ variable "vm_01_pubip" {
 
 variable "vm_01" {
   default = "vm-01"
+  description = "vm name"
+  type        = string
 }
 
 variable "vm_count" {
   description = "Number of Virtual Machines"
   default     = 2
-  type        = number
+  type        = string
 }
 
 variable "vm_fw" {
@@ -66,8 +68,8 @@ variable "vm_fw" {
 
 variable "fw_pubip" {
   description = "Firewall Public IP"
-  default     = "fw-pubip"
-  type        = string
+  default     = ["fw-pubip-01", "fw-pubip-02"]
+  type        = list
 }
 
 variable "fw_ipcfg" {
@@ -108,18 +110,37 @@ variable "vm_ip_prefix" {
 }
 
 #variable for department
-variable "department" {
+variable "vm_dpt_it" {
 type = string
 default = "IT"
 }
 
 #variable for test environment
-variable "vm_test_env" {
+variable "vm_env_test" {
 type = string
+default = "Test"
 }
 
 #variable for owner
 variable "vm_owner" {
 type = string
 default = "Fred"
+}
+
+variable "vm_agent" {
+  description = "Vm log agent"
+  default     = "vm_agent"
+  type        = string
+}
+
+variable "vm_name" {
+  description = "Vm names list"
+  type        = list
+  default     = ["vmprod", "vmtest", "vmqa"]
+}
+
+variable "pubip_list" {
+  description = "Pubip list"
+  type        = list
+  default     = ["pubip-", "pubip-"]
 }
