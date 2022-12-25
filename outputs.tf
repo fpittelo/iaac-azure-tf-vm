@@ -7,7 +7,7 @@
 #}
 
 #output "vm_pubip_list_id" {
-#   value = azurerm_linux_virtual_machine.List.name
+#  value = azurerm_linux_virtual_machine.vm_01.name
 #}
 
 #output "tls_private_key" {
