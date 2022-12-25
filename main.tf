@@ -4,8 +4,8 @@ resource "azurerm_resource_group" "rg" {
   location = var.rg_location
 
   tags = {
-    department        = var.department
-    environment       = var.vm_test_env
+    department        = var.vm_dpt_it
+    environment       = var.vm_env_test
     owner             = var.vm_owner
   }
 
@@ -25,15 +25,15 @@ resource "azurerm_log_analytics_workspace" "log_wks" {
   depends_on          = [azurerm_resource_group.rg]
 
   tags = {
-    department        = var.department
-    environment       = var.vm_test_env
+    department        = var.vm_dpt_it
+    environment       = var.vm_env_test
     owner             = var.vm_owner
   }
 
 }
 
-resource "azurerm_network_security_group" "vm_nsg_01" {
-  name                = var.vm_nsg_01
+resource "azurerm_network_security_group" "vm_nsg" {
+  name                = var.vm_nsg
   location            = var.rg_location
   resource_group_name = var.rg_name
   depends_on          = [azurerm_resource_group.rg]
@@ -51,11 +51,10 @@ resource "azurerm_network_security_group" "vm_nsg_01" {
   }
 
   tags = {
-    department        = var.department
-    environment       = var.vm_test_env
+    department        = var.vm_dpt_it
+    environment       = var.vm_env_test
     owner             = var.vm_owner
   }
-
 }
 
 resource "azurerm_virtual_network" "vm_net" {
@@ -67,16 +66,15 @@ resource "azurerm_virtual_network" "vm_net" {
   depends_on          = [azurerm_resource_group.rg]
 
   tags = {
-    department        = var.department
-    environment       = var.vm_test_env
+    department        = var.vm_dpt_it
+    environment       = var.vm_env_test
     owner             = var.vm_owner
   }
-
 }
 
 resource "time_sleep" "wait_vnet_creation" {
-  depends_on      = [azurerm_virtual_network.vm_net]
-  create_duration = "90s"
+  depends_on          = [azurerm_virtual_network.vm_net]
+  create_duration     = "90s"
 }
 
 # Create subnet internal
@@ -99,62 +97,65 @@ resource "azurerm_subnet" "vm_subnet_pub" {
 
 # Create public IP
 resource "azurerm_public_ip" "vm_pubip" {
-  count               = var.vm_count
-  name                = "${var.vm_name_prefix}-${count.index}"
-  location            = var.rg_location
-  resource_group_name = var.rg_name
-  allocation_method   = var.vm_test_env=="test" ? "Static" : "Dynamic"
-  sku                 = "Basic"
-  depends_on          = [azurerm_resource_group.rg]
+  count                = var.vm_count
+  name                 = "vm-pubip-${count.index}"
+  location             = var.rg_location
+  resource_group_name  = var.rg_name
+  allocation_method    = "Dynamic"
+  sku                  = "Basic"
+  depends_on           = [azurerm_resource_group.rg]
 
   tags = {
-    department        = var.department
-    environment       = var.vm_test_env
-    owner             = var.vm_owner
+    department         = var.vm_dpt_it
+    environment        = var.vm_env_test
+    owner              = var.vm_owner
   }
 }
 
-resource "azurerm_network_interface" "vm_01_nic" {
-  count               = var.vm_count
-  name                = "${var.vm_name_prefix}-${count.index}"
-  location            = var.rg_location
-  resource_group_name = var.rg_name
-  depends_on          = [azurerm_resource_group.rg]
+resource "azurerm_network_interface" "vm_nic" {
+  count                = var.vm_count
+# name                 = var.vm_name[count.index]
+  name                 = "vm-nic-${count.index}"
+  location             = var.rg_location
+  resource_group_name  = var.rg_name
+  depends_on           = [azurerm_resource_group.rg]
 
   ip_configuration {
     name                          = var.vm_01_ipcfg
     subnet_id                     = azurerm_subnet.vm_subnet_int.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id = element(azurerm_public_ip.vm_pubip.*.id, count.index)
+    public_ip_address_id          = "${azurerm_public_ip.vm_pubip[count.index].id}"
+  # public_ip_address_id          = element(azurerm_public_ip.vm_pubip.*.id, count.index)
   }
 
   tags = {
-    department        = var.department
-    environment       = var.vm_test_env
-    owner             = var.vm_owner
+    department         = var.vm_dpt_it
+    environment        = var.vm_env_test
+    owner              = var.vm_owner
   }
-
 }
 
 #Connect the security group to the network interface
 resource "azurerm_network_interface_security_group_association" "vm-sec-assoc" {
   count = var.vm_count
-  network_interface_id      = element(azurerm_network_interface.vm_01_nic.*.id, count.index)
-  network_security_group_id = azurerm_network_security_group.vm_nsg_01.id
+  network_interface_id      = "${azurerm_network_interface.vm_nic[count.index].id}"
+# network_interface_id      = element(azurerm_network_interface.vm_nic.*.id, count.index)
+  network_security_group_id = azurerm_network_security_group.vm_nsg.id
 }
 
-resource "azurerm_linux_virtual_machine" "vm-01" {
+resource "azurerm_linux_virtual_machine" "vm_linux" {
   count                           = var.vm_count
-  name                            = "${var.vm_name_prefix}-${format("%02d", count.index)}"
+  name                            = "vm-${count.index}"
   resource_group_name             = var.rg_name
   location                        = var.rg_location
   size                            = "Standard_F2"
   admin_username                  = "adminfpi"
   admin_password                  = "L1nuxP0wer"
   disable_password_authentication = "false"
+# network_interface_ids           = "${azurerm_network_interface.vm_nic[count.index].id}" 
   network_interface_ids           = [
-    element(azurerm_network_interface.vm_01_nic.*.id, count.index)
-,
+    element(azurerm_network_interface.vm_nic.*.id, count.index)
+ ,
   ]
 
   admin_ssh_key {
@@ -172,25 +173,48 @@ resource "azurerm_linux_virtual_machine" "vm-01" {
   }
 
   os_disk {
-    name                 = "vm_disk-${count.index}"
+    name                 = "vm-disk-${count.index}"
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
   }
 
-  provisioner "local-exec" {
-    command = templatefile("${var.host_os}-ssh-script.tpl", {
-      hostname     = self.public_ip_address,
-      user         = "adminfpi"
-      identityfile = "~/.ssh/fredkey"
-    })
-    interpreter = ["Powershell", "-Command"]
-  }
+# provisioner "local-exec" {
+#   command = templatefile("${var.host_os}-ssh-script.tpl", {
+#     hostname     = self.public_ip_address,
+#     user         = "adminfpi"
+#     identityfile = "~/.ssh/fredkey"
+#   })
+#   interpreter = ["Powershell", "-Command"]
+# }
 
   tags = {
-    department        = var.department
-    environment       = var.vm_test_env
+    department        = var.vm_dpt_it
+    environment       = var.vm_env_test
     owner             = var.vm_owner
   }
+}
+
+resource "azurerm_virtual_machine_extension" "vm_extension" {
+   count                      = var.vm_count
+   name                       = var.vm_agent
+   virtual_machine_id         = "${azurerm_linux_virtual_machine.vm_linux[count.index].id}"
+#  virtual_machine_id         = element (azurerm_linux_virtual_machine.vm_linux.*.id, count.index)
+   publisher                  = "Microsoft.EnterpriseCloud.Monitoring"
+   type                       = "MicrosoftMonitoringAgent"
+   type_handler_version       = "1.0"
+   auto_upgrade_minor_version = "true"
+   depends_on                 = [azurerm_linux_virtual_machine.vm_linux]
+
+    settings = <<SETTINGS
+  {
+     "workspaceId": "${azurerm_log_analytics_workspace.log_wks.workspace_id}"
+  }
+SETTINGS
+  protected_settings = <<PROTECTED_SETTINGS
+  {
+     "workspaceKey": "${azurerm_log_analytics_workspace.log_wks.primary_shared_key}"
+  }
+PROTECTED_SETTINGS
 }
 
 #data "azurerm_public_ip" "vm_01_pubipdata" {
@@ -199,5 +223,5 @@ resource "azurerm_linux_virtual_machine" "vm-01" {
 #}
 
 #output "vm_01_pubip" {
-# value = "${azurerm_linux_virtual_machine.vm-01.name}: ${data.azurerm_public_ip.vm_01_pubipdata.ip_address}"
+# value = "${azurerm_linux_virtual_machine.vm_linux.name}: ${data.azurerm_public_ip.vm_01_pubipdata.ip_address}"
 #}

@@ -6,6 +6,4 @@ vm_pubip_list   = ["vm_01_pubip", "vm_03_pubip", "vm_03_pubip"]
 
 vm_name_prefix  = "vm"
 
-vm_test_env     = "test"
-
 vm_count        = 2
