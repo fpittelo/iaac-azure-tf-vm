@@ -8,7 +8,6 @@ resource "azurerm_resource_group" "rg" {
     environment       = var.vm_env_test
     owner             = var.vm_owner
   }
-
 }
 
 #resource "time_sleep" "wait_rg_creation" {
@@ -29,7 +28,6 @@ resource "azurerm_log_analytics_workspace" "log_wks" {
     environment       = var.vm_env_test
     owner             = var.vm_owner
   }
-
 }
 
 resource "azurerm_network_security_group" "vm_nsg" {
@@ -114,7 +112,6 @@ resource "azurerm_public_ip" "vm_pubip" {
 
 resource "azurerm_network_interface" "vm_nic" {
   count                = var.vm_count
-# name                 = var.vm_name[count.index]
   name                 = "vm-nic-${count.index}"
   location             = var.rg_location
   resource_group_name  = var.rg_name
@@ -125,7 +122,6 @@ resource "azurerm_network_interface" "vm_nic" {
     subnet_id                     = azurerm_subnet.vm_subnet_int.id
     private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = "${azurerm_public_ip.vm_pubip[count.index].id}"
-  # public_ip_address_id          = element(azurerm_public_ip.vm_pubip.*.id, count.index)
   }
 
   tags = {
@@ -139,7 +135,6 @@ resource "azurerm_network_interface" "vm_nic" {
 resource "azurerm_network_interface_security_group_association" "vm-sec-assoc" {
   count = var.vm_count
   network_interface_id      = "${azurerm_network_interface.vm_nic[count.index].id}"
-# network_interface_id      = element(azurerm_network_interface.vm_nic.*.id, count.index)
   network_security_group_id = azurerm_network_security_group.vm_nsg.id
 }
 
@@ -152,7 +147,6 @@ resource "azurerm_linux_virtual_machine" "vm_linux" {
   admin_username                  = "adminfpi"
   admin_password                  = "L1nuxP0wer"
   disable_password_authentication = "false"
-# network_interface_ids           = "${azurerm_network_interface.vm_nic[count.index].id}" 
   network_interface_ids           = [
     element(azurerm_network_interface.vm_nic.*.id, count.index)
  ,
@@ -198,10 +192,9 @@ resource "azurerm_virtual_machine_extension" "vm_extension" {
    count                      = var.vm_count
    name                       = var.vm_agent
    virtual_machine_id         = "${azurerm_linux_virtual_machine.vm_linux[count.index].id}"
-#  virtual_machine_id         = element (azurerm_linux_virtual_machine.vm_linux.*.id, count.index)
    publisher                  = "Microsoft.EnterpriseCloud.Monitoring"
-   type                       = "MicrosoftMonitoringAgent"
-   type_handler_version       = "1.0"
+   type                       = "OmsAgentForLinux"
+   type_handler_version       = "1.14"
    auto_upgrade_minor_version = "true"
    depends_on                 = [azurerm_linux_virtual_machine.vm_linux]
 
