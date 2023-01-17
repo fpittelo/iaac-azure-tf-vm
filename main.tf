@@ -193,8 +193,11 @@ resource "azurerm_virtual_machine_extension" "vm_extension" {
    name                       = var.vm_agent
    virtual_machine_id         = "${azurerm_linux_virtual_machine.vm_linux[count.index].id}"
    publisher                  = "Microsoft.EnterpriseCloud.Monitoring"
+#  publisher                  = "Microsoft.Azure.Monitor"
    type                       = "OmsAgentForLinux"
+#  type                       = "AzureMonitorLinuxAgent"
    type_handler_version       = "1.14"
+#  type_handler_version       = "1.24"
    auto_upgrade_minor_version = "true"
    depends_on                 = [azurerm_linux_virtual_machine.vm_linux]
 
@@ -209,6 +212,44 @@ SETTINGS
   }
 PROTECTED_SETTINGS
 }
+
+resource "azurerm_monitor_data_collection_rule" "dcr" {
+  name                = "dcr"
+  resource_group_name = var.rg_name
+  location            = var.rg_location
+  destinations {
+    azure_monitor_metrics {
+      name = "dc-metrics"
+    }
+  }
+  data_flow {
+    streams      = ["Microsoft-InsightsMetrics"]
+    destinations = ["dc-metrics"]
+  }
+}
+
+#resource "azurerm_monitor_data_collection_endpoint" "dce" {
+# name                = "dce"
+# resource_group_name = var.rg_name
+# location            = var.rg_location
+#}
+
+# associate to a Data Collection Rule
+#resource "azurerm_monitor_data_collection_rule_association" "dcra" {
+# name                    = "dcra"
+# target_resource_id      = azurerm_linux_virtual_machine.vm_linux.id
+# target_resource_id      = "${azurerm_linux_virtual_machine.vm_linux[count.index].id}"
+# data_collection_rule_id = azurerm_monitor_data_collection_rule.dcr.id
+# description             = "dcra"
+#}
+
+# associate to a Data Collection Endpoint
+#resource "azurerm_monitor_data_collection_rule_association" "dcea" {
+# target_resource_id          = azurerm_linux_virtual_machine.vm_linux.id
+# target_resource_id          = "${azurerm_linux_virtual_machine.vm_linux[count.index].id}"
+# data_collection_endpoint_id = azurerm_monitor_data_collection_endpoint.dce.id
+# description                 = "dcea"
+#}
 
 #data "azurerm_public_ip" "vm_01_pubipdata" {
 #  name = azurerm_public_ip.vm_pubip.name
